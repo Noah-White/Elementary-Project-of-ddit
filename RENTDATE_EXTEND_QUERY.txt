@@ -1,0 +1,13 @@
+SELECT * FROM RENT; 
+    
+    /
+    --대출기간 연장 쿼리
+    UPDATE RENT
+    SET RENT_EXP_DATE = RENT_EXP_DATE + 14
+    WHERE BOOK_NUM = '책번호'
+    AND   MEM_ID = '아이디' ;
+    
+    /
+
+
+

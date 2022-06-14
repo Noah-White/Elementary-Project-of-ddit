@@ -1,0 +1,97 @@
+   
+    SELECT * FROM RENT;
+
+    CREATE SEQUENCE RENT_SEQ
+    INCREMENT BY 1
+    START WITH 1;
+    MAXVALUE 99
+    MINVALUE 1
+    CYCLE
+    CACHE 10
+    NOORDER;
+    
+    
+    /* 시퀀스 초기화 Procedure */
+/
+CREATE OR REPLACE PROCEDURE DATE_SEQ_RESET(SEQ_NAME IN VARCHAR2)
+IS
+        L_VAL NUMBER;
+BEGIN
+     
+        EXECUTE IMMEDIATE 'SELECT '|| SEQ_NAME ||'.NEXTVAL FROM DUAL' INTO L_VAL;
+        
+        EXECUTE IMMEDIATE 'ALTER SEQUENCE '|| SEQ_NAME ||' INCREMENT BY -'|| L_VAL ||' MINVALUE 0';
+        
+        EXECUTE IMMEDIATE 'SELECT '|| SEQ_NAME ||'.NEXTVAL FROM DUAL' INTO L_VAL;
+        
+        EXECUTE IMMEDIATE 'ALTER SEQUENCE '|| SEQ_NAME ||' INCREMENT BY 1 MINVALUE 0';
+     
+END;
+/
+
+--ORACLE JOB에 PROCEDURE 등록
+/
+DECLARE
+    X NUMBER;
+BEGIN
+        SYS.DBMS_JOB.SUBMIT
+        (
+              job => X
+            , WHAT =>
+                'BEGIN
+                        DATE_SEQ_RESET(''RENT_SEQ'');
+                 END;'
+            , NEXT_DATE => TO_DATE('05-31-2017 00:00:00', 'mm/dd/yyyy hh24:mi:ss')
+            , INTERVAL => 'TRUNC(SYSDATE+1)'
+            , NO_PARSE => FALSE
+        );
+        SYS.DBMS_OUTPUT.PUT_LINE('JOB NUMBER IS : '|| TO_CHAR(X));
+END;
+/
+
+--날짜를 포함한 시퀀스 값을 가져오는 함수 생성
+/
+CREATE OR REPLACE FUNCTION GET_RENT_SEQ(
+    P_TYPE IN VARCHAR2
+    ) RETURN VARCHAR2
+    AS
+         V_RETURNVALUE VARCHAR2(180);
+BEGIN
+ 
+    BEGIN
+ 
+        SELECT TO_CHAR(SYSDATE, 'YYYYMMDD') || LPAD(RENT_SEQ.NEXTVAL, 3, 0)
+          INTO V_RETURNVALUE
+          FROM DUAL;
+ 
+    EXCEPTION
+      WHEN NO_DATA_FOUND THEN
+        V_RETURNVALUE := ' ';
+      WHEN OTHERS THEN
+        V_RETURNVALUE := ' ';
+    END;
+ 
+    RETURN V_RETURNVALUE;
+END;
+/
+
+--함수호출
+SELECT GET_RENT_SEQ('now') FROM DUAL;
+SELECT GET_RENT_SEQ('now'), MEM_ID FROM MEMBER;
+
+
+
+SELECT * FROM BOOK;
+
+
+
+
+--도서 대출 쿼리 
+
+INSERT INTO RENT( RENT_NUM, BOOK_NUM, RENT_DATE, RENT_EXP_DATE,RETURN_STAT, MEM_ID)
+VALUES(GET_RENT_SEQ('now'),'KA94522',SYSDATE,(SYSDATE+14),'대출중','a001');
+   
+   SELECT * FROM RENT; 
+   
+--동일한 책 ORACLE에서는  대출로 등록 가능하나, JAVA에서 제약을 걸어서 날리는 쪽으로. 
+    
